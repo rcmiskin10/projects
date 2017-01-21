@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!--created by Ricky Miskin-->
+<html lang="en">
+  <head>
+    <title>Shortest Path</title>
+    <meta name="description" content="Shortest Path">
+  	<meta name="author" content="Ricky Miskin">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  </head>
+  <body>
+  	<style>
+	  	table {
+			width: 50%;
+			height: 500px;
+			margin: 0 auto;
+			margin-bottom:10px;
+	  	}
+	  	td {
+	  		height:5%; 
+	  		width:5%; 
+	  		line-height:5%;
+	  	}
+	  	#start{
+		  background-color: grey;
+		  padding: .5em;
+		  -moz-border-radius: 5px;
+		  -webkit-border-radius: 5px;
+		  border-radius: 6px;
+		  color: #fff;
+		  font-size: 20px;
+		  text-decoration: none;
+		  border: none;
+		}
+		#clear{
+		  background-color: red;
+		  padding: .5em;
+		  -moz-border-radius: 5px;
+		  -webkit-border-radius: 5px;
+		  border-radius: 6px;
+		  color: #fff;
+		  font-size: 20px;
+		  text-decoration: none;
+		  border: none;
+		}
+		#execute{
+		  background-color: green;
+		  padding: .5em;
+		  -moz-border-radius: 5px;
+		  -webkit-border-radius: 5px;
+		  border-radius: 6px;
+		  color: #fff;
+		  font-size: 20px;
+		  text-decoration: none;
+		  border: none;
+		}
+  	</style>
+		<div style='text-align:center; width:100%;height:100%' class='container'>
+			<h1>Shortest Path</h1>
+			<button id="start" class="btn">Generate</button><br>
+			<button style="display:none;" id="clear" class="btn">Clear Grid</button><br>
+			<div class='prompt'></div>
+			<button style="display:none;" id="execute" class="btn">Execute</button><br><br>
+			<div class='grid'></div>
+			
+			<div class='array'></div>
+		</div>
+	<!--javascript-->
+	<script>
+		//main 
+		var tr = 10;//set number of rows
+    	var td = 10;//set number of columns
+		$(document).ready(function(){
+			//wait for start button to be clicked
+			$( "#start" ).click(function() {
+				$( "#start" ).hide();
+				$("#clear").show();
+		    	$('.grid').html(generateGrid());
+		    	// assign id's 1 through n 
+    			i=1
+		    	$("table td").each(function() {
+		    	 	$(this).attr("id", i);
+		    	 	$(this).attr("class", "open");
+		    	 	i++
+		    	});
+		    	$(".prompt").html("<h3>Welcome! Please pick a starting point...</h3>");
+		    	// start gathering start, end, and obstacle points
+		    	generatePoints();
+		    });
+			//check when clear button is clicked and generate new grid
+			$( "#clear" ).click(function() {
+				$('.grid').html(generateGrid());
+		    	// assign id's 1 through n 
+    			i=1
+		    	$("table td").each(function() {
+		    	 	$(this).attr("id", i);
+		    	 	$(this).attr("class", "open");
+		    	 	i++
+		    	});
+		    	$(".prompt").html("<h3>Welcome! Please pick a starting point...</h3>");
+		    	$("#execute").hide();
+		    	// start gathering start, end, and obstacle points with the generatePoints() function
+		    	generatePoints();
+			});
+			$( "#execute" ).click(function() {//once execute button pushed run searchPath() and store the list of the path in path_ids
+				//set retrun of searchPath to path_ids
+				//try to get the path id's from searchPath() if error then show no path found
+				try{
+					var path_ids = searchPath();
+				}
+				catch(err){
+					$(".prompt").html("<h3>No Path Found. Please try again!</h3>");
+					$("#execute").hide();
+				}
+
+				if(!path_ids){//if false give prompt
+					$(".prompt").html("<h3>No Path Found. Please try again!</h3>");
+					$("#execute").hide();
+				}else{
+					
+					//else pop the end of the path list
+					var end = Number($('.end').attr('id'));
+					path_ids.pop()
+					//loop through the path_ids and turn their respective element id's to blue to highlight the path
+					for(i=0;i<path_ids.length;i++){
+						$('#'+path_ids[i]).css("background-color","blue");
+					}
+					//display the distance
+					$("#execute").hide();
+					$(".prompt").html("<h3>Distance = "+path_ids.length+"</h3><h3>Press 'Clear Grid' to play again</h3>");	
+					
+				}
+			});
+			
+		});
+		// generate start, end, and obstacle points
+		function generatePoints(){
+			//initialize point to 1
+			var point = 1;
+			//whenever a box is clicked execute choosePoints function
+			var done = false;
+			$("td").on("click", choosePoints);
+			//points the function to either the starting point, end or obstacle points
+			function choosePoints(){
+				//if point =1 then turned clicked cell into starting point change to green and change class to start
+	    	 	if(point==1){
+					$(this).css("background-color","green");
+					$(this).removeClass('open');
+					$(this).addClass('start');
+					$(".prompt").html("<h3>Now pick an end point...</h3>");
+					point=2; //make point 2
+				}
+				else{
+					//if point=2 and the cell is not the start point then change to red and change class to end
+					if(point==2){
+						if(!$(this).hasClass("start")){
+							$(this).css("background-color","red");
+							$(this).removeClass('open');
+							$(this).addClass('end');
+							$(".prompt").html("<h3>Now pick some obstacles...</h3>");
+							point=3;//make point 3
+						}
+					}
+					else{
+						//if point is 3 then make sure cell is not the end and not start and change color to black and class to obs
+						if(!$(this).hasClass("end") && !$(this).hasClass("start")){
+							$(this).css("background-color","black");
+							$(this).removeClass('open');
+							$(this).addClass('obs');
+							$(".prompt").html("<h3>Execute shortest path...</h3>");
+							$("#execute").show();
+						}	  
+					}
+				}
+	    	}
+	    }
+		function generateGrid(){
+			var table = $('<table class="no" cellpadding="0" cellspacing="0" border="1"></table>')//initialize table html
+	    	//for each item in tr create a row and for each item in td create a column and append to the current row...finally append the row to the table element and return table
+	    	for(i=1; i<=tr; i++){
+				var row = $('<tr></tr>');
+				for(x=1; x<=td; x++){
+    				var col = $('<td name='+x+','+i+'></td>');
+    				row.append(col);
+				}
+				table.append(row);
+			}
+			return table;
+		}
+		function searchPath(){
+			//grab the end point's td id
+			var end = Number($('.end').attr('id'));
+			//grab the start point's td id
+			var start = Number($('.start').attr('id'));
+			//create a frontier queue for exploring possible points
+			var frontier = [];
+			//create a visited, to append points that have been visited
+			var visited = [];
+			//append start object to frontier queue
+			frontier.push({
+				id:start, //id of start td
+				came_from:0,//its parent point 
+				//distance:0//distance from start
+			});
+				//the frontier queue is not 0 or empty loop through
+				while(frontier.length>0){
+					//dequeue the current object in frontier queue and put it into current
+					current = frontier.shift();
+					//if it is the end point append the object to visited and break the loop
+					if(current.id===end){
+						visited.push({
+							id:current.id,
+							came_from:current.came_from,
+							//distance:current.distance
+						})
+						break
+					}
+					//get neighbors from neighbors funciton using the current object's id
+					neighbors = getNeighbors(current.id)
+					
+					//if no neighbors continue on 
+					if(neighbors === false){
+						continue;
+						//else if it does have a neighbor check if its the start id
+					}else{
+						if(current.id===start){ //if its the start id then loop through the neighbors and append object to frontier
+							for(i=0;i<neighbors.length;i++){
+								
+								frontier.push({
+									id:neighbors[i], //id =neighbors id
+									came_from:current.id, //parent is the current point
+									//distance:current.distance+1 //and distance is the current points distance +1
+								})
+									
+							}//finally append start object to the visited list
+							visited.push({
+								id:current.id,
+								came_from:0,
+								//distance:current.distance
+							})
+						}else{//if its not the start id then loop through its neighbors and append object to frontier 
+							for(i=0;i<neighbors.length;i++){
+								
+									frontier.push({
+										id:neighbors[i],
+										came_from:current.id,
+										//distance:current.distance+1
+									})
+							}
+							//once appended neighbors then check if the current id's class is not visited, 
+							if($("#"+current.id).attr("class")!=="visited"){
+								$("#"+current.id).attr("class","visited");//make class "visited"
+								//append current id's object to visited
+								visited.push({
+									id:current.id,
+									came_from:current.came_from,
+									//distance:current.distance
+								})
+							}else{continue;}//if the current id's class is visited already then continue on with the loop
+						}
+					}
+				}
+			//get neighbbors function takes in current id and finds its adjacent cells
+			function getNeighbors(current){
+				//if the crrent id is divisible by the total columns then no right neighbors
+				if(current%td==0){
+					var right = 0;
+				}else{var right = current+1}//else make a right variable
+				if((current-1)%td==0){//if current -1 is divisible by the total columns then no left neighbor
+					var left = 0;
+				}else{var left = current-1}//else make left current -1
+				
+				var up = current-td//up neighbor 
+				if(current+td > (td*td)){//if current +td is greater than total cells then no down neighbor
+					var down = 0;
+				}else{var down = current+td}//make down neighbor
+				var poss_neighbors = [right,left,up,down];//put possible neighbors into list
+
+				var neighbors = [];//make neighbors list
+				for(i=0;i<poss_neighbors.length;i++){
+					if(poss_neighbors[i]>0){//if number is greater than 0
+						if($("#"+poss_neighbors[i]).attr("class")==="open"){
+							neighbors.push(poss_neighbors[i]);//class is open append to neighbors
+						}
+						else{
+							if($("#"+poss_neighbors[i]).attr("class")==="start")
+							{continue}//else if class = start then skip
+							else{	
+								if($("#"+poss_neighbors[i]).attr("class")==="end"){
+										neighbors.push(poss_neighbors[i]);//if end append 
+								}else{
+									if($("#"+poss_neighbors[i]).attr("class")==="visited"){//if visited skip
+										continue;
+									}else{continue;}//anything else skip
+								}
+							}
+						}
+					}
+				}
+				if(neighbors.length===0){//if neighbors is 0 then return false
+					return false;
+				}else{
+					return neighbors;//else return neighbors
+				}
+			}
+			return reconstructPath();//once while loop breaks up top then return reconstructPath()
+			//reconstruct the path
+			function reconstructPath(){
+				var act_end = Number($('.end').attr('id'));
+				var end = visited[visited.length - 1];//end point is the last item in visited
+				
+				var start = visited[0];//start is the first
+				var current = end;//current point is end point
+				var path = [current.id];//make a path list with current.id 
+				var came_from = current.came_from;// and came_from is the id the current id came from
+				//while current is not the start loop through
+				while(current.id!==start.id){
+					if(current===start){
+						break;//if it is break the loop
+					}
+					//for items in visited if visited object's id is = to the came_from id then append to the path list the visited object's id, and set the current to that object and came_from that objects parent
+					for(i=0;i<visited.length;i++){
+						if(visited[i].id === came_from){
+							path.push(visited[i].id);
+							current = visited[i];
+							came_from = visited[i].came_from;
+						}//if you can't find an id where it came from then continue on
+					}
+				}
+				path.reverse();//reverse the path list so the start is at the front
+				//pop the last element in the list
+				path.shift();//dequeue the first element
+				return path;
+				
+			}
+		}
+	</script>
+  </body>
+</html>
+
+
+
+
