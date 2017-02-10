@@ -1,0 +1,31 @@
+<h1> Blog List <small><a href='#' ng-click='changeCols(2)'>Change</a></small></h1>
+<div class='row'>
+	<div class='col-sm-6'>
+		<input type='text' ng-model='query' class='form-control' placeholder='Filter'>
+	</div>
+</div>
+<br>
+<!--
+<ul ng-if='items.length > 0'>
+	<li ng-repeat='post in items'> 
+		<a  ng-href='/blog/{{ post.id }}' confirm-click='Are you ready?' confirmed-click='goToItem(post)' >{{ post.title }} </a>
+		<a  href='#' ng-click='goToItem(post)'>{{ post.title }} </a>
+
+	</li>
+</ul>
+-->
+<div class="row" dir-paginate='items in colItems | itemsPerPage: 2 | filter: query'>
+  <div class="{{ cssClass }}" ng-repeat='post in items'>
+    <div class="thumbnail">
+      <img ng-src="{{ post.image }}" alt="...">
+      <div class="caption">
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.description }}</p>
+        <p><a class='btn btn-primary' ng-href='/blog/{{ post.id }}' confirm-click='Are you ready?' confirmed-click='goToItem(post)' >View </a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dir-pagination-controls ng-hide='query.length>0'></dir-pagination-controls>
+<span ng-if='items.length == 0'>Posts coming soon! </span>
